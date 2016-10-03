@@ -62,7 +62,7 @@ class Image(object):
         self.raw_region = self.raw_region / self.exposure_time_value
         return self
 
-    def trim(self, prescan_width=0, overscan_width=0, border=64):
+    def trim(self, prescan_width=0, overscan_width=0, upper_trim=0,border=64):
         '''Remove the optional prescan and overscan from the image, as well
         as the outer `n` rows/colums of the image. Finally ensure the imaging
         region is the correct dimensions for :py:func:`skimage.transform.resize`
@@ -77,6 +77,9 @@ class Image(object):
         overscan_width : int
             Remove the last ``overscan_width`` columns from the image, assuming
             the are not in the imaging region.
+
+        upper_trim : into
+            Remove the last ``upper trim`` rows from the image.
 
         border : int
             Ignore the first/last ``border`` rows/columns from the image,
@@ -103,6 +106,15 @@ class Image(object):
         else:
             image_section = self.raw_image
 
+        if (upper_trim > 0):
+            image_section = image_section[:-upper_trim,:]
+
+
+        # get the reference data, with tweaked shape if needed
+        if (border > 0):
+            image_section = image_section[border:-border, 
+                                        border:-border]
+
         dy, dx = image_section.shape
 
         # check if the CCD is a funny shape. Normal CCDs should divide by 16
@@ -118,11 +130,9 @@ class Image(object):
         else:
             dimx = dx
             dimy = dy
+    
+        self.raw_region = image_section[:dimy,:dimx]
 
-        # get the reference data, with tweaked shape if needed
-        self.raw_region = image_section[
-            border:dimy - border, border:dimx - border
-        ]
         return self
 
     def remove_background(self, ntiles=32):
